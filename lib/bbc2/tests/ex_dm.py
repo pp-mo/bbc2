@@ -8,7 +8,6 @@ dm = Dm(
     n_address_width=3,
     content=[1, 5, 2, 6, 3, 7, 4, 0],
 )
-dm.trace("*")
 
 seq = Sequencer()
 seq.verbose = True
