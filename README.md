@@ -1,2 +1,2 @@
 # bbc2
-Minimal ball-bearing computer, basen on 'desim'
+Minimal ball-bearing computer, based on 'wirables'.
