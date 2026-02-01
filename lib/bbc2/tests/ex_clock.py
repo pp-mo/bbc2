@@ -1,7 +1,6 @@
 from bbc2.devices.cpu_clock import CpuClock
 
-from desim.event import Event
-from desim.sequencer import Sequencer
+from wirables import Event, Sequencer
 
 clk = CpuClock("clk", period=10)
 clk.trace("*")

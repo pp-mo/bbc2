@@ -1,5 +1,4 @@
-from desim.signal import SIG_UNDEFINED, EventTime, EventValue
-from desim.device import Device
+from wirables import Device, SIG_UNDEFINED, EventTime, EventValue
 
 
 class Pm(Device):
@@ -15,7 +14,7 @@ class Pm(Device):
         name: str,
         n_address_width: int,
         *,
-        content: list[EventTime] | None = None,
+        content: list[EventValue] | None = None,
     ):
         super().__init__(name)
         self.n_address_width = n_address_width

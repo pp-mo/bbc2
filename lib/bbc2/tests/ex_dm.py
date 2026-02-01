@@ -1,7 +1,7 @@
 from bbc2.devices.dm import Dm
 
-from desim.event import Event
-from desim.sequencer import Sequencer
+from wirables import Event, Sequencer
+
 
 dm = Dm(
     "dm8",

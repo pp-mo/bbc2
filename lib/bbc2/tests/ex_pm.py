@@ -1,7 +1,7 @@
 from bbc2.devices.pm import Pm
 
-from desim.event import Event
-from desim.sequencer import Sequencer
+from wirables import Event, Sequencer
+
 
 pm = Pm(
     "pm8",
