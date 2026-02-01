@@ -1,71 +1,11 @@
-from desim.event import PostEventTypes
-from desim.signal import (
+from wirables import (
+    Device,
     SIG_UNDEFINED,
     SIG_ZERO,
     EventValue,
     EventTime,
-    ValueTypes,
 )
-from desim.device import Device
-
-
-# class Dev2(Device):
-#     """Some common helpers/extensions"""
-#
-#     TIMES : dict[str, float] = {}
-#     STATES : list[str] = []
-#
-#     def __init__(self, name: str, *args, **kwargs):
-#         super().__init__(name)
-#         self.times = self.TIMES.copy()
-#         for time_name, time_value in self.TIMES.items():
-#             val = kwargs.pop(time_name, None)
-#             if val is not None:
-#                 is_time = isinstance(val, (float, int))
-#                 if is_time:
-#                     val_fixed = float(val)
-#                     is_time = val_fixed >= 0.0
-#                 if not is_time:
-#                     msg = (
-#                         "Unexpected value or type for time-period argument: "
-#                         f"{time_name!r} = {val!r}, type {type(val)!r}."
-#                     )
-#                     raise ValueError(msg)
-#                 time_value = val_fixed
-#             setattr(self, time_name, time_value)
-#
-#     def change_state(
-#         self, opname: str, previous_state_s: str | list[str], new_state: str
-#     ):
-#         if isinstance(previous_state_s, str):
-#             previous_states = [previous_state_s]
-#         else:
-#             previous_states = list(previous_state_s)
-#         for name in previous_states + [new_state]:
-#             if not isinstance(name, str) or name not in self.STATES:
-#                 msg = (
-#                     f"In operation {opname!r}, value {name!r} "
-#                     "is not the name of a known state."
-#                 )
-#                 raise ValueError(msg)
-#         self.check_validstate(name=opname, value_or_values=previous_states)
-#         self.state = new_state
-#
-#     def act(
-#         self,
-#         action_name: str,
-#         time: TimeTypes,
-#         value: ValueTypes | None = None,
-#         context=None,
-#     ):
-#         """Add a little checking to the default implementation."""
-#         if action_name not in self.actions:
-#             msg = (
-#                 f"In operation act({action_name!r}, {action_name!r} "
-#                 "is not the name of a known action."
-#             )
-#             raise ValueError(msg)
-#         super().act(action_name, time, value, context)
+from wirables.signal import ValueTypes
 
 
 class Dm(Device):
@@ -91,15 +31,15 @@ class Dm(Device):
         name: str,
         n_address_width: int,
         *,
-        content: list[EventTime] | None = None,
-        empty_value: ValueTypes = 0,
+        content: list[EventValue] | None = None,
+        empty_value: ValueTypes = SIG_ZERO,
         **kwargs,
     ):
         # Register name and capture time arguments
         super().__init__(name, **kwargs)
         self.n_address_width: int = n_address_width
         self.n_slots = 2**n_address_width
-        self.empty_value = int(empty_value)
+        self.empty_value = EventValue(empty_value)
         if content is None:
             content = [self.empty_value for _ in range(self.n_slots)]
         self.content: list[int] = content
@@ -110,30 +50,30 @@ class Dm(Device):
         self._writeval: int = -1
 
     @Device.input
-    def inp_addr(self, time: EventTime, value: EventValue) -> PostEventTypes:
+    def inp_addr(self, time: EventTime, value: EventValue):
         self.xto("idle", "address_changing")
         self._address = int(value.value) & (2**self.n_address_width - 1)
         self.act("act_address_settled", time + self.t_address)
 
     @Device.action
-    def act_address_settled(self, time: EventTime) -> PostEventTypes:
+    def act_address_settled(self, time: EventTime):
         # Ok with this, settling again
         self.xto("address_changing", "idle")
 
     @Device.input
-    def inp_select(self, time: EventTime, value: EventValue) -> PostEventTypes:
+    def inp_select(self, time: EventTime, value: EventValue):
         self.xto("idle", "reading")
         self.out("output", SIG_UNDEFINED)
         self.act("act_read_done", time + self.t_read)
 
     @Device.action
-    def act_read_done(self, time: EventTime) -> PostEventTypes:
+    def act_read_done(self, time: EventTime):
         self.xto("reading", "read_done")
         self.out("output", self.content[self._address])
         self.content[self._address] = 0  # destructive reads !
 
     @Device.input
-    def inp_write(self, time: EventTime, value: EventValue) -> PostEventTypes:
+    def inp_write(self, time: EventTime, value: EventValue):
         """
         Note: can only happen once, hence 'deselect' has 2 valid states:
         either "read_done" OR "write_done".
@@ -143,15 +83,15 @@ class Dm(Device):
         self.act("act_write_done", time + self.t_write)
 
     @Device.action
-    def act_write_done(self, time: EventTime) -> PostEventTypes:
+    def act_write_done(self, time: EventTime):
         self.content[self._address] = self._writeval
         self.xto("writing", "write_done")
 
     @Device.input
-    def inp_deselect(self, time: EventTime, value: EventValue) -> PostEventTypes:
+    def inp_deselect(self, time: EventTime, value: EventValue):
         self.xto(["idle", "read_done", "write_done"], "deselecting")
         self.act("act_deselected", time + self.t_deselect)
 
     @Device.action
-    def act_deselected(self, time: EventTime) -> PostEventTypes:
+    def act_deselected(self, time: EventTime):
         self.xto("deselecting", "idle")

@@ -4,8 +4,8 @@ A clock that cycles through specific phases.
 The outputs are a simple 'tick', and a h
 """
 
-from desim.signal import TimeTypes, ValueTypes
-from desim.device import Device
+from wirables import Device
+from wirables.signal import TimeTypes, ValueTypes
 
 
 class CpuClock(Device):
